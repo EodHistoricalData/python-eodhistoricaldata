@@ -1,0 +1,62 @@
+sudo: false
+
+language: python
+
+matrix:
+  fast_finish: true
+  include:
+  - os: linux
+    env:
+      - PYTHON=3.5 PANDAS=0.20.1
+  - os: linux
+    env:
+      - PYTHON=3.6 PANDAS=0.20.1
+  # In allow failures
+  - os: linux
+    env:
+      - PYTHON=3.6 PANDAS="MASTER"
+  allow_failures:
+    - os: linux
+      env:
+        - PYTHON=3.6 PANDAS="MASTER"
+
+install:
+  - pip install -qq flake8
+  # You may want to periodically update this, although the conda update
+  # conda line below will keep everything up-to-date.  We do this
+  # conditionally because it saves us some downloading if the version is
+  # the same.
+  - if [[ "$PYTHON" == "2.7" ]]; then
+      wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda config --add channels pandas
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+  - conda create -q -n test-environment python=$PYTHON coverage setuptools pytest pytest-cov
+  - source activate test-environment
+  - if [[ "$PANDAS" == "MASTER" ]]; then
+      conda install numpy pytz python-dateutil;
+      PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com";
+      pip install --pre --upgrade --timeout=60 -f $PRE_WHEELS pandas;
+    else
+      conda install pandas=$PANDAS;
+    fi
+  - pip install coveralls --quiet
+  - conda list
+  - python setup.py install
+
+script:
+    - export EOD_HISTORICAL_API_KEY=$EOD_HISTORICAL_API_KEY
+    - pytest -s --cov=eod_historical_data --cov-report xml:/tmp/cov-eod_historical_data.xml --junitxml=/tmp/eod_historical_data.xml
+    - flake8 --version
+    - flake8 eod_historical_data tests
+
+after_success:
+  - coveralls

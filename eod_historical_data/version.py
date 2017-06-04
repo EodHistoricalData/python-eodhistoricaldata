@@ -1,0 +1,8 @@
+__author__ = "Femto Trader"
+__copyright__ = "Copyright 2017"
+__license__ = "MIT"
+__version__ = "0.0.1"
+__maintainer__ = "femtotrader"
+__email__ = ""
+__status__ = "Development"
+__url__ = "https://github.com/femtotrader/python-eodhistoricaldata"
