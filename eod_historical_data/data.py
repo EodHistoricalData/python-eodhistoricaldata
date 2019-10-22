@@ -1,7 +1,7 @@
 import os
 import requests
 import pandas as pd
-from pandas.compat import StringIO
+from io import StringIO
 from ._utils import (_init_session, _format_date,
                      _sanitize_dates, _url, RemoteDataError)
 
