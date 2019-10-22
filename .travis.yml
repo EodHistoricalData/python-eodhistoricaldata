@@ -1,24 +1,18 @@
-sudo: false
-
+dist: bionic
 language: python
 
 matrix:
   fast_finish: true
   include:
-  - os: linux
-    env:
-      - PYTHON=3.5 PANDAS=0.20.1
-  - os: linux
-    env:
-      - PYTHON=3.6 PANDAS=0.20.1
-  # In allow failures
-  - os: linux
-    env:
-      - PYTHON=3.6 PANDAS="MASTER"
+  - python: 3.5
+    env: PANDAS=0.22 NUMPY=1.13
+  - python: 3.6
+    env: PANDAS=0.23 NUMPY=1.14
+  - python: 3.7
+    env: PANDAS=0.25 NUMPY=1.17
   allow_failures:
-    - os: linux
-      env:
-        - PYTHON=3.6 PANDAS="MASTER"
+    - python: 3.7
+      env: PANDAS="MASTER" NUMPY=1.17
 
 install:
   - pip install -qq flake8
