@@ -18,6 +18,12 @@ NAME = 'eod_historical_data'
 with io.open(path.join(here, NAME, 'version.py'), 'rt', encoding='UTF-8') as f:
     exec(f.read())
 
+install_requires = []
+with open("./requirements.txt") as f:
+    install_requires = f.read().splitlines()
+with open("./requirements-dev.txt") as f:
+    tests_require = f.read().splitlines()
+    
 setup(
     name=NAME,
 
@@ -57,48 +63,10 @@ setup(
         'License :: OSI Approved :: MIT License',
     ],
 
-    # What does your project relate to?
     keywords='python trading data stock index',
-
-    # You can just specify the packages manually here if your project is
-    # simple. Or you can use find_packages().
-    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-
-    # List run-time dependencies here.  These will be installed by pip when your
-    # project is installed. For an analysis of "install_requires" vs pip's
-    # requirements files see:
-    # https://packaging.python.org/en/latest/technical.html#install-requires-vs-requirements-files
-    install_requires=['pandas', 'requests', 'requests-cache'],
-
-    # List additional groups of dependencies here (e.g. development dependencies).
-    # You can install these using the following syntax, for example:
-    # $ pip install -e .[dev,test]
-    extras_require = {
-        'dev': ['check-manifest', 'nose'],
-        'test': ['coverage', 'nose'],
-    },
-
-    # If there are data files included in your packages that need to be
-    # installed, specify them here.  If using Python 2.6 or less, then these
-    # have to be included in MANIFEST.in as well.
-    # package_data={
-    #     'samples': ['samples/*.py'],
-    # },
-
-    # Although 'package_data' is the preferred approach, in some case you may
-    # need to place data files outside of your packages.
-    # see http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files
-    # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
-    # data_files=[('my_data', ['data/data_file'])],
-
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
-    # entry_points={
-    #     'console_scripts': [
-    #         'sample=sample:main',
-    #     ],
-    # },
-    # tests_require=['xlrd'],
-    # test_suite='tests',
+    install_requires=install_requires,
+    packages=find_packages(exclude=["contrib", "docs", "tests*"]),
+    test_suite="tests",
+    tests_require=tests_require,
+    zip_safe=False,
 )
