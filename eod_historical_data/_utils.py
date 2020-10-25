@@ -1,8 +1,8 @@
 import requests
 import datetime
 import pandas as pd
-from pandas.io.common import urlencode
 from pandas.api.types import is_number
+from urllib.parse import urlencode
 
 
 def _init_session(session):
