@@ -5,3 +5,4 @@ flake8
 pytest
 pytest-cov
 wrapt
+python-decouple

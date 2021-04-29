@@ -1,71 +1,62 @@
-import os
+import typing
 import requests
 import pandas as pd
 from io import StringIO
 from ._utils import (_init_session, _format_date,
                      _sanitize_dates, _url, RemoteDataError)
 
-EOD_HISTORICAL_DATA_API_KEY_ENV_VAR = "EOD_HISTORICAL_API_KEY"
-EOD_HISTORICAL_DATA_API_KEY_DEFAULT = "OeAFFmMliFG5orCUuwAKQ8l4WWFQ67YX"
-EOD_HISTORICAL_DATA_API_URL = "https://eodhistoricaldata.com/api"
+from config.config import Config
+config_data: Config = Config()
+
+EOD_HISTORICAL_DATA_API_KEY_ENV_VAR: str = config_data.EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
+EOD_HISTORICAL_DATA_API_KEY_DEFAULT: str = config_data.EOD_HISTORICAL_DATA_API_KEY_DEFAULT
+EOD_HISTORICAL_DATA_API_URL: str = config_data.EOD_HISTORICAL_DATA_API_URL
 
 
-def get_api_key(env_var=EOD_HISTORICAL_DATA_API_KEY_ENV_VAR):
-    """
-    Returns API key from environment variable
-    API key must have been set previously
-    bash> export EOD_HISTORICAL_API_KEY="YOURAPI"
-    Returns default API key, if environment variable is not found
-    """
-    return os.environ.get(env_var, EOD_HISTORICAL_DATA_API_KEY_DEFAULT)
-
-
-def get_eod_data(symbol, exchange, start=None, end=None,
-                 api_key=EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
-                 session=None):
+def get_eod_data(symbol: str, exchange: str, start: typing.Union[None, int] = None, end: typing.Union[None, int] = None,
+                 api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
+                 session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
     """
     Returns EOD (end of day data) for a given symbol
     """
-    symbol_exchange = symbol + "." + exchange
-    session = _init_session(session)
+    symbol_exchange: str = symbol + "." + exchange
+    session: requests.Session = _init_session(session)
     start, end = _sanitize_dates(start, end)
-    endpoint = "/eod/{symbol_exchange}".format(symbol_exchange=symbol_exchange)
-    url = EOD_HISTORICAL_DATA_API_URL + endpoint
-    params = {
+    endpoint: str = "/eod/{symbol_exchange}".format(symbol_exchange=symbol_exchange)
+    url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
+    params: dict = {
         "api_token": api_key,
         "from": _format_date(start),
         "to": _format_date(end)
     }
-    r = session.get(url, params=params)
+    r: requests.Response = session.get(url, params=params)
     if r.status_code == requests.codes.ok:
-        df = pd.read_csv(StringIO(r.text), skipfooter=1,
-                         parse_dates=[0], index_col=0)
+        df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(r.text), skipfooter=1, parse_dates=[0], index_col=0)
         return df
     else:
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
 
-def get_dividends(symbol, exchange, start=None, end=None,
-                  api_key=EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
-                  session=None):
+def get_dividends(symbol: str, exchange: str, start: typing.Union[None, int] = None, end: typing.Union[None, int] = None,
+                  api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
+                  session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
     """
     Returns dividends
     """
-    symbol_exchange = symbol + "." + exchange
-    session = _init_session(session)
+    symbol_exchange: str = symbol + "." + exchange
+    session: requests.Session = _init_session(session)
     start, end = _sanitize_dates(start, end)
-    endpoint = "/div/{symbol_exchange}".format(symbol_exchange=symbol_exchange)
-    url = EOD_HISTORICAL_DATA_API_URL + endpoint
-    params = {
+    endpoint: str = "/div/{symbol_exchange}".format(symbol_exchange=symbol_exchange)
+    url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
+    params: dict = {
         "api_token": api_key,
         "from": _format_date(start),
         "to": _format_date(end)
     }
-    r = session.get(url, params=params)
+    r: requests.Response = session.get(url, params=params)
     if r.status_code == requests.codes.ok:
-        df = pd.read_csv(StringIO(r.text), skipfooter=1,
-                         parse_dates=[0], index_col=0)
+        df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), skipfooter=1, parse_dates=[0], index_col=0)
         assert len(df.columns) == 1
         ts = df["Dividends"]
         return ts
@@ -74,33 +65,33 @@ def get_dividends(symbol, exchange, start=None, end=None,
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
 
-def get_exchange_symbols(exchange_code,
-                         api_key=EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
-                         session=None):
+def get_exchange_symbols(exchange_code: str,
+                         api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
+                         session: typing.Union[requests.Session, None] = None) -> typing.Union[pd.DataFrame, None]:
     """
     Returns list of symbols for a given exchange
     """
-    session = _init_session(session)
-    endpoint = "/exchanges/{exchange_code}".format(exchange_code=exchange_code)
-    url = EOD_HISTORICAL_DATA_API_URL + endpoint
-    params = {
+    session: requests.Session = _init_session(session)
+    endpoint: str = "/exchanges/{exchange_code}".format(exchange_code=exchange_code)
+    url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
+    params: dict = {
         "api_token": api_key
     }
-    r = session.get(url, params=params)
+    r: requests.Response = session.get(url, params=params)
     if r.status_code == requests.codes.ok:
-        df = pd.read_csv(StringIO(r.text), skipfooter=1, index_col=0)
+        df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), skipfooter=1, index_col=0)
         return df
     else:
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
 
-def get_exchanges():
+def get_exchanges() -> pd.DataFrame:
     """
     Returns list of exchanges
     https://eodhistoricaldata.com/knowledgebase/list-supported-exchanges/
     """
-    data = """ID	Exchange Name	Exchange Code
+    data: str = """ID	Exchange Name	Exchange Code
 1	Munich Exchange	MU
 2	Berlin Exchange	BE
 3	Frankfurt Exchange	F
@@ -144,17 +135,17 @@ def get_exchanges():
 42	OTC Market	OTC
 43	ETF-Euronext	NX
 44	Johannesburg Exchange	JSE"""
-    df = pd.read_csv(StringIO(data), sep="\t")
-    df = df.set_index("ID")
-    return(df)
+    df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(data), sep="\t")
+    df: pd.DataFrame = df.set_index("ID")
+    return df
 
 
-def get_currencies():
+def get_currencies() -> pd.DataFrame:
     """
     Returns list of supported currencies
     https://eodhistoricaldata.com/knowledgebase/list-supported-currencies/
     """
-    data = """ID	Exchange Code	Currency Code
+    data: str = """ID	Exchange Code	Currency Code
 1	FX	USD
 2	FX	EUR
 3	FX	RUB
@@ -188,17 +179,17 @@ def get_currencies():
 31	FX	TRY
 32	FX	UYU
 33	FX	BTC"""
-    df = pd.read_csv(StringIO(data), sep="\t")
-    df = df.set_index("ID")
-    return(df)
+    df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(data), sep="\t")
+    df: pd.DataFrame = df.set_index("ID")
+    return df
 
 
-def get_indexes():
+def get_indexes() -> pd.DataFrame:
     """
     Returns list of supported indexes
     https://eodhistoricaldata.com/knowledgebase/list-supported-indexes/
     """
-    data = """ID	Exchange Code	Code	Index Name
+    data: str = """ID	Exchange Code	Code	Index Name
 1	INDX	GSPC	S&P 500
 2	INDX	GDAXI	DAX Index
 3	INDX	SSEC	Shanghai Composite Index (China)
@@ -337,6 +328,6 @@ def get_indexes():
 136	INDX	IXE	^IXE: Select Sector Spdr-energy Inde
 137	INDX	IXIC	NASDAQ Composite
 138	INDX	SPEUP	S&P EUROPE 350"""
-    df = pd.read_csv(StringIO(data), sep="\t")
-    df = df.set_index("ID")
-    return(df)
+    df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(data), sep="\t")
+    df: pd.DataFrame = df.set_index("ID")
+    return df
