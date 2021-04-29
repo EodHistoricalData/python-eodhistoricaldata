@@ -28,7 +28,10 @@ Environment variable `EOD_HISTORICAL_API_KEY` should be defined using:
 
 ```bash
 export EOD_HISTORICAL_API_KEY="YOUR_API"
+
+or setup and .env file and store the api_key in it see example env file 
 ```
+
 
 You can download data simply using
 
