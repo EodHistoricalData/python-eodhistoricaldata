@@ -15,7 +15,7 @@ def set_envar() -> str:
     return EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
 
 @_handle_request_errors
-def get_eod_data(symbol: str, exchange: str, start: typing.Union[None, int] = None, end: typing.Union[None, int] = None,
+def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = None, end: typing.Union[str, int] = None,
                  api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                  session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
     """
@@ -42,7 +42,7 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[None, int] = No
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
 @_handle_request_errors
-def get_dividends(symbol: str, exchange: str, start: typing.Union[None, int] = None, end: typing.Union[None, int] = None,
+def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = None, end: typing.Union[str, int] = None,
                   api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                   session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
     """
