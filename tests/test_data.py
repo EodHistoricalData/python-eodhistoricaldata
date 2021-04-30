@@ -1,5 +1,5 @@
 import pandas as pd
-from eod_historical_data import (get_api_key,
+from eod_historical_data import (set_envar,
                                  get_eod_data,
                                  get_dividends,
                                  get_exchange_symbols,
@@ -17,7 +17,7 @@ session = requests_cache.CachedSession(cache_name='cache', backend='sqlite',
 # Get API key
 #  from environment variable
 #  bash> export EOD_HISTORICAL_API_KEY="YOURAPI"
-api_key = get_api_key()
+api_key = set_envar()
 # api_key = "YOURAPI"
 
 
