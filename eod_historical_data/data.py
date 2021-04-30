@@ -33,7 +33,9 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[None, int] = No
     }
     r: requests.Response = session.get(url, params=params)
     if r.status_code == requests.codes.ok:
-        df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(r.text), skipfooter=1, parse_dates=[0], index_col=0)
+        # NOTE engine='c' which is default does not support skipfooter
+        df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(r.text), engine='python',
+                                                           skipfooter=1, parse_dates=[0], index_col=0)
         return df
     else:
         params["api_token"] = "YOUR_HIDDEN_API"
@@ -58,7 +60,9 @@ def get_dividends(symbol: str, exchange: str, start: typing.Union[None, int] = N
     }
     r: requests.Response = session.get(url, params=params)
     if r.status_code == requests.codes.ok:
-        df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), skipfooter=1, parse_dates=[0], index_col=0)
+        # NOTE engine='c' which is default does not support skipfooter
+        df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=1,
+                                                           parse_dates=[0], index_col=0)
         assert len(df.columns) == 1
         ts = df["Dividends"]
         return ts

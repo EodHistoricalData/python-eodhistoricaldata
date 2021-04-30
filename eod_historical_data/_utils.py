@@ -6,7 +6,7 @@ import traceback
 import pandas as pd
 from pandas.api.types import is_number
 from urllib.parse import urlencode
-
+from collections.abc import Callable
 from requests.exceptions import RetryError, ConnectTimeout
 
 
@@ -66,7 +66,10 @@ def _sanitize_dates(start: typing.Union[None, int], end: typing.Union[None, int]
 
     return start, end
 
-def _handle_request_errors(func):
+
+def _handle_request_errors(func: typing.Callable[..., typing.Union[pd.DataFrame, None]]) -> \
+        typing.Union[None, typing.Callable[..., typing.Union[pd.DataFrame, None]]]:
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
