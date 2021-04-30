@@ -48,10 +48,10 @@ def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = No
     """
     Returns dividends
     """
-    symbol_exchange: str = symbol + "." + exchange
+    symbol_exchange: str = "{},{}".format(symbol, exchange)
     session: requests.Session = _init_session(session)
     start, end = _sanitize_dates(start, end)
-    endpoint: str = "/div/{symbol_exchange}".format(symbol_exchange=symbol_exchange)
+    endpoint: str = "/div/{}".format(symbol_exchange)
     url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
     params: dict = {
         "api_token": api_key,

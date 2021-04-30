@@ -6,9 +6,10 @@ import traceback
 import pandas as pd
 from pandas.api.types import is_number
 from urllib.parse import urlencode
-from collections.abc import Callable
 from requests.exceptions import RetryError, ConnectTimeout
+from config.config import Config
 
+config_instance: Config = Config()
 
 def _init_session(session: requests.Session) -> requests.Session:
     """
@@ -75,13 +76,22 @@ def _handle_request_errors(func: typing.Callable[..., typing.Union[pd.DataFrame,
         try:
             return func(*args, **kwargs)
         except ConnectionError:
-            print(traceback.format_exc())
+            if config_instance.DEBUG is True:
+                print(traceback.format_exc())
+            else:
+                print("Connection Error")
             return None
         except RetryError:
-            print(traceback.format_exc())
+            if config_instance.DEBUG is True:
+                print(traceback.format_exc())
+            else:
+                print("Connection Error")
             return None
         except ConnectTimeout:
-            print(traceback.format_exc())
+            if config_instance.DEBUG is True:
+                print(traceback.format_exc())
+            else:
+                print("Connection Error")
             return None
 
     return wrapper
