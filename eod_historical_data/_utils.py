@@ -2,7 +2,6 @@ import typing
 import functools
 import requests
 import datetime
-import sys
 import traceback
 import pandas as pd
 from pandas.api.types import is_number
