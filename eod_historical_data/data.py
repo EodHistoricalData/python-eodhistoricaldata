@@ -11,7 +11,8 @@ config_data: Config = Config()
 EOD_HISTORICAL_DATA_API_KEY_ENV_VAR: str = config_data.EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
 EOD_HISTORICAL_DATA_API_KEY_DEFAULT: str = config_data.EOD_HISTORICAL_DATA_API_KEY_DEFAULT
 EOD_HISTORICAL_DATA_API_URL: str = config_data.EOD_HISTORICAL_DATA_API_URL
-
+def set_envar() -> str:
+    return EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
 
 def get_eod_data(symbol: str, exchange: str, start: typing.Union[None, int] = None, end: typing.Union[None, int] = None,
                  api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
