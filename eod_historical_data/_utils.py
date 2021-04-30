@@ -1,10 +1,14 @@
 import typing
-
+import functools
 import requests
 import datetime
+import sys
+import traceback
 import pandas as pd
 from pandas.api.types import is_number
 from urllib.parse import urlencode
+
+from requests.exceptions import RetryError, ConnectTimeout
 
 
 def _init_session(session: requests.Session) -> requests.Session:
@@ -62,3 +66,20 @@ def _sanitize_dates(start: typing.Union[None, int], end: typing.Union[None, int]
             raise Exception("end must be after start")
 
     return start, end
+
+def _handle_request_errors(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ConnectionError:
+            print(traceback.format_exc())
+            return None
+        except RetryError:
+            print(traceback.format_exc())
+            return None
+        except ConnectTimeout:
+            print(traceback.format_exc())
+            return None
+
+    return wrapper

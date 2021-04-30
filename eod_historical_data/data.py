@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 from io import StringIO
 from ._utils import (_init_session, _format_date,
-                     _sanitize_dates, _url, RemoteDataError)
+                     _sanitize_dates, _url, RemoteDataError, _handle_request_errors)
 
 from config.config import Config
 config_data: Config = Config()
@@ -14,6 +14,7 @@ EOD_HISTORICAL_DATA_API_URL: str = config_data.EOD_HISTORICAL_DATA_API_URL
 def set_envar() -> str:
     return EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
 
+@_handle_request_errors
 def get_eod_data(symbol: str, exchange: str, start: typing.Union[None, int] = None, end: typing.Union[None, int] = None,
                  api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                  session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
@@ -38,7 +39,7 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[None, int] = No
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
-
+@_handle_request_errors
 def get_dividends(symbol: str, exchange: str, start: typing.Union[None, int] = None, end: typing.Union[None, int] = None,
                   api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                   session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
@@ -65,7 +66,7 @@ def get_dividends(symbol: str, exchange: str, start: typing.Union[None, int] = N
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
-
+@_handle_request_errors
 def get_exchange_symbols(exchange_code: str,
                          api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                          session: typing.Union[requests.Session, None] = None) -> typing.Union[pd.DataFrame, None]:
