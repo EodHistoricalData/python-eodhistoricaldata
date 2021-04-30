@@ -103,3 +103,5 @@ ENV/
 *.sqlite
 .DS_Store
 
+# Pycharm
+.idea
