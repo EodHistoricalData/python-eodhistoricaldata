@@ -90,5 +90,7 @@ See [tests directory](https://github.com/femtotrader/python-eodhistoricaldata/tr
 
 ## Credits
 
+- Original version by [FemtoTrader](https://github.com/femtotrader/) 2017-2021
 - Idea to create this project [came from this issue](https://github.com/pydata/pandas-datareader/issues/315) (Thanks [@deios0](https://github.com/deios0) )
 - Code was inspired by [pandas-datareader](http://pandas-datareader.readthedocs.io/)
+
