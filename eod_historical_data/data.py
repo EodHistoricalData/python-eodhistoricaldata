@@ -3,7 +3,8 @@ import requests
 import pandas as pd
 from io import StringIO
 from ._utils import (_init_session, _format_date,
-                     _sanitize_dates, _url, RemoteDataError, _handle_request_errors)
+                     _sanitize_dates, _url, RemoteDataError, _handle_request_errors, EnvironNotSet,
+                     _handle_environ_error, sentinel, api_key_not_authorized)
 
 from config.config import Config
 config_data: Config = Config()
@@ -14,6 +15,7 @@ EOD_HISTORICAL_DATA_API_URL: str = config_data.EOD_HISTORICAL_DATA_API_URL
 def set_envar() -> str:
     return EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
 
+@_handle_environ_error
 @_handle_request_errors
 def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = None, end: typing.Union[str, int] = None,
                  api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
@@ -21,10 +23,10 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = Non
     """
     Returns EOD (end of day data) for a given symbol
     """
-    symbol_exchange: str = symbol + "." + exchange
+    symbol_exchange: str = "{}.{}".format(symbol, exchange)
     session: requests.Session = _init_session(session)
     start, end = _sanitize_dates(start, end)
-    endpoint: str = "/eod/{symbol_exchange}".format(symbol_exchange=symbol_exchange)
+    endpoint: str = "/eod/{}".format(symbol_exchange)
     url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
     params: dict = {
         "api_token": api_key,
@@ -32,15 +34,21 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = Non
         "to": _format_date(end)
     }
     r: requests.Response = session.get(url, params=params)
+    print('status code : {}'.format(r.status_code))
+
     if r.status_code == requests.codes.ok:
         # NOTE engine='c' which is default does not support skipfooter
         df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(r.text), engine='python',
                                                            skipfooter=1, parse_dates=[0], index_col=0)
         return df
+    elif r.status_code == api_key_not_authorized:
+        print("API Key Restricted, Try upgrading your API Key: {}".format(__name__))
+        return sentinel
     else:
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
+@_handle_environ_error
 @_handle_request_errors
 def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = None, end: typing.Union[str, int] = None,
                   api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
@@ -59,6 +67,8 @@ def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = No
         "to": _format_date(end)
     }
     r: requests.Response = session.get(url, params=params)
+    print('status code : {}'.format(r.status_code))
+
     if r.status_code == requests.codes.ok:
         # NOTE engine='c' which is default does not support skipfooter
         df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=1,
@@ -66,10 +76,14 @@ def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = No
         assert len(df.columns) == 1
         ts = df["Dividends"]
         return ts
+    elif r.status_code == api_key_not_authorized:
+        print("API Key Restricted, Try upgrading your API Key: {}".format(__name__))
+        return sentinel
     else:
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
+@_handle_environ_error
 @_handle_request_errors
 def get_exchange_symbols(exchange_code: str,
                          api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
@@ -84,9 +98,13 @@ def get_exchange_symbols(exchange_code: str,
         "api_token": api_key
     }
     r: requests.Response = session.get(url, params=params)
+    print('status code : {}'.format(r.status_code))
     if r.status_code == requests.codes.ok:
         df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=1, index_col=0)
         return df
+    elif r.status_code == api_key_not_authorized:
+        print("API Key Restricted, Try upgrading your API Key: {}".format(__name__))
+        return sentinel
     else:
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
