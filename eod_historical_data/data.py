@@ -7,13 +7,17 @@ from ._utils import (_init_session, _format_date,
                      _handle_environ_error, sentinel, api_key_not_authorized)
 
 from config.config import Config
+
 config_data: Config = Config()
 
 EOD_HISTORICAL_DATA_API_KEY_ENV_VAR: str = config_data.EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
 EOD_HISTORICAL_DATA_API_KEY_DEFAULT: str = config_data.EOD_HISTORICAL_DATA_API_KEY_DEFAULT
 EOD_HISTORICAL_DATA_API_URL: str = config_data.EOD_HISTORICAL_DATA_API_URL
+
+
 def set_envar() -> str:
     return EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
+
 
 @_handle_environ_error
 @_handle_request_errors
@@ -21,7 +25,7 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = Non
                  api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                  session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
     """
-    Returns EOD (end of day data) for a given symbol
+        Returns EOD (end of day data) for a given symbol
     """
     symbol_exchange: str = "{}.{}".format(symbol, exchange)
     session: requests.Session = _init_session(session)
@@ -37,7 +41,7 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = Non
     print('status code : {}'.format(r.status_code))
 
     if r.status_code == requests.codes.ok:
-        # NOTE engine='c' which is default does not support skipfooter
+        # NOTE engine='c' which is default does not support skip footer
         df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(r.text), engine='python',
                                                            skipfooter=1, parse_dates=[0], index_col=0)
         return df
@@ -48,13 +52,14 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = Non
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
+
 @_handle_environ_error
 @_handle_request_errors
 def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = None, end: typing.Union[str, int] = None,
                   api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                   session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
     """
-    Returns dividends
+        Returns dividends
     """
     symbol_exchange: str = "{},{}".format(symbol, exchange)
     session: requests.Session = _init_session(session)
@@ -70,7 +75,7 @@ def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = No
     print('status code : {}'.format(r.status_code))
 
     if r.status_code == requests.codes.ok:
-        # NOTE engine='c' which is default does not support skipfooter
+        # NOTE engine='c' which is default does not support skip footer
         df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=1,
                                                            parse_dates=[0], index_col=0)
         assert len(df.columns) == 1
@@ -83,13 +88,14 @@ def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = No
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
+
 @_handle_environ_error
 @_handle_request_errors
 def get_exchange_symbols(exchange_code: str,
                          api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                          session: typing.Union[requests.Session, None] = None) -> typing.Union[pd.DataFrame, None]:
     """
-    Returns list of symbols for a given exchange
+        Returns list of symbols for a given exchange
     """
     session: requests.Session = _init_session(session)
     endpoint: str = "/exchanges/{exchange_code}".format(exchange_code=exchange_code)
@@ -115,7 +121,8 @@ def get_exchanges() -> pd.DataFrame:
     Returns list of exchanges
     https://eodhistoricaldata.com/knowledgebase/list-supported-exchanges/
     """
-    data: str = """ID	Exchange Name	Exchange Code
+    data: str = """
+ID	Exchange Name	Exchange Code
 1	Munich Exchange	MU
 2	Berlin Exchange	BE
 3	Frankfurt Exchange	F
