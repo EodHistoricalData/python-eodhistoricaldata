@@ -70,8 +70,8 @@ async def get_eod_data_async(symbol: str, exchange: str, start: typing.Union[str
     }
     async with aiohttp.ClientSession() as session:
         async with session.get(url, params=params) as response:
-            response_data = await response.text()
             if response.status == 200:
+                response_data = await response.text()
                 df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(response_data), engine='python',
                                                                    skipfooter=1, parse_dates=[0], index_col=0)
                 return df
@@ -179,6 +179,35 @@ def get_exchange_symbols(exchange_code: str,
     else:
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
+
+
+@_handle_environ_error
+@_handle_request_errors
+async def get_exchange_symbols_async(exchange_code: str,
+                                     api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT) -> \
+        typing.Union[pd.DataFrame, None]:
+
+    """
+        Returns list of symbols for a given exchange
+    """
+    endpoint: str = "/exchanges/{exchange_code}".format(exchange_code=exchange_code)
+    url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
+    params: dict = {
+        "api_token": api_key
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params) as response:
+            if response.status == 200:
+                response_data = await response.text()
+                df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
+                                                                   skipfooter=1, index_col=0)
+                return df
+            elif response.status == api_key_not_authorized:
+                print("API Key Restricted, Try upgrading your API Key: {}".format(__name__))
+                return sentinel
+            else:
+                params["api_token"] = "YOUR_HIDDEN_API"
+                raise RemoteDataError(response.status, response.reason, _url(url, params))
 
 
 def get_exchanges() -> pd.DataFrame:
