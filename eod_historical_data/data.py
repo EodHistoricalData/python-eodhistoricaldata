@@ -186,7 +186,6 @@ def get_exchange_symbols(exchange_code: str,
 async def get_exchange_symbols_async(exchange_code: str,
                                      api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT) -> \
         typing.Union[pd.DataFrame, None]:
-
     """
         Returns list of symbols for a given exchange
     """
