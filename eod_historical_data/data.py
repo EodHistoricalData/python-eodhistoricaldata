@@ -53,7 +53,6 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = Non
         params["api_token"] = "YOUR_HIDDEN_API"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
-
 @_handle_environ_error
 @_handle_request_errors
 async def get_eod_data_async(symbol: str, exchange: str, start: typing.Union[str, int] = None,
@@ -153,14 +152,13 @@ async def get_dividends_async(symbol: str, exchange: str, start: typing.Union[st
                 params["api_token"] = "YOUR_HIDDEN_API"
                 raise RemoteDataError(response.status, response.reason, _url(url, params))
 
-
 @_handle_environ_error
 @_handle_request_errors
 def get_exchange_symbols(exchange_code: str,
                          api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                          session: typing.Union[requests.Session, None] = None) -> typing.Union[pd.DataFrame, None]:
     """
-    Returns list of symbols for a given exchange
+        Returns list of symbols for a given exchange
     """
     session: requests.Session = _init_session(session)
     endpoint: str = "/exchanges/{exchange_code}".format(exchange_code=exchange_code)
@@ -214,7 +212,8 @@ def get_exchanges() -> pd.DataFrame:
     Returns list of exchanges
     https://eodhistoricaldata.com/knowledgebase/list-supported-exchanges/
     """
-    data: str = """ID	Exchange Name	Exchange Code
+    data: str = """
+ID	Exchange Name	Exchange Code
 1	Munich Exchange	MU
 2	Berlin Exchange	BE
 3	Frankfurt Exchange	F

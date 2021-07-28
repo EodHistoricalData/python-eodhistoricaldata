@@ -8,9 +8,11 @@ from pandas.api.types import is_number
 from urllib.parse import urlencode
 from requests.exceptions import RetryError, ConnectTimeout
 from config.config import Config
+
 config_instance: Config = Config()
 # NOTE do not remove
 from unittest.mock import sentinel
+
 
 def _init_session(session: typing.Union[requests.Session, None]) -> requests.Session:
     """
@@ -26,9 +28,10 @@ def _url(url: str, params: dict) -> str:
     """
     return "{}?{}".format(url, urlencode(params)) if isinstance(params, dict) and len(params) > 0 else url
 
+
 def _format_date(dt: typing.Union[None, datetime.datetime]) -> typing.Union[None, str]:
     """
-        Returns formated date
+        Returns formatted date
     """
     return None if dt is None else dt.strftime("%Y-%m-%d")
 
@@ -56,7 +59,6 @@ def _sanitize_dates(start: typing.Union[None, int], end: typing.Union[None, int]
 
 def _handle_request_errors(func: typing.Callable[..., typing.Union[pd.DataFrame, None]]) -> \
         typing.Union[None, typing.Callable[..., typing.Union[pd.DataFrame, None]]]:
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -85,7 +87,6 @@ def _handle_request_errors(func: typing.Callable[..., typing.Union[pd.DataFrame,
 
 def _handle_environ_error(func: typing.Callable[..., typing.Union[pd.DataFrame, None]]) -> \
         typing.Union[None, typing.Callable[..., typing.Union[pd.DataFrame, None]]]:
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -94,8 +95,10 @@ def _handle_environ_error(func: typing.Callable[..., typing.Union[pd.DataFrame, 
             assert api_key != ""
             return func(*args, **kwargs)
         except AssertionError:
-            raise EnvironNotSet("Enviroment not set see readme.md on how to setup your environment variables")
+            raise EnvironNotSet("Environment not set see readme.md on how to setup your environment variables")
+
     return wrapper
+
 
 # Errors
 
@@ -105,10 +108,12 @@ class RemoteDataError(IOError):
     """
     pass
 
+
 class EnvironNotSet(Exception):
     """
         raised when environment variables are not set
     """
     pass
+
 
 api_key_not_authorized: int = 403
