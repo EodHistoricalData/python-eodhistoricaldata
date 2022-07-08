@@ -1,13 +1,16 @@
-import typing
-import aiohttp as aiohttp
-import requests
-import pandas as pd
+from datetime import datetime, date
 from io import StringIO
-from ._utils import (_init_session, _format_date,
-                     _sanitize_dates, _url, RemoteDataError, _handle_request_errors, EnvironNotSet,
-                     _handle_environ_error, sentinel, api_key_not_authorized)
+from typing import Union, Optional, Dict, Tuple
+from unittest.mock import sentinel
+
+import aiohttp as io
+import pandas as pd
+import requests
 
 from config.config import Config
+from ._utils import (_init_session, _format_date,
+                     _sanitize_dates, _url, RemoteDataError, _handle_request_errors, _handle_environ_error,
+                     api_key_not_authorized)
 
 config_data: Config = Config()
 
@@ -15,24 +18,26 @@ EOD_HISTORICAL_DATA_API_KEY_ENV_VAR: str = config_data.EOD_HISTORICAL_DATA_API_K
 EOD_HISTORICAL_DATA_API_KEY_DEFAULT: str = config_data.EOD_HISTORICAL_DATA_API_KEY_DEFAULT
 EOD_HISTORICAL_DATA_API_URL: str = config_data.EOD_HISTORICAL_DATA_API_URL
 
+Start_END_Type = Optional[Union[str, int, date, datetime]]
+
 
 def set_envar() -> str:
     return EOD_HISTORICAL_DATA_API_KEY_ENV_VAR
 
-def inv_api_key():
+
+def _api_key_not_authorized_message():
     print(f"API Key Restricted, Try upgrading your API Key: {__name__}")
     return sentinel
 
-@_handle_environ_error
-@_handle_request_errors
-def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = None, end: typing.Union[str, int] = None,
-                 api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
-                 session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
+
+def _create_params(symbol: str, exchange: str, start: Start_END_Type,
+                   end: Start_END_Type, api_key: str) -> Tuple[str, Dict[str, str]]:
     """
-        Returns EOD (end of day data) for a given symbol
+        **create_params**
+            will create parameters to pass into request session
     """
     symbol_exchange: str = f"{symbol}.{exchange}"
-    session: requests.Session = _init_session(session)
+    # Takes date, datetime, str , or int and returns a valid date objects or TimeStamps
     start, end = _sanitize_dates(start, end)
     endpoint: str = f"/eod/{symbol_exchange}"
     url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
@@ -41,147 +46,190 @@ def get_eod_data(symbol: str, exchange: str, start: typing.Union[str, int] = Non
         "from": _format_date(start),
         "to": _format_date(end)
     }
+    return url, params
+
+
+def _create_request(api_key: str, end: Start_END_Type, start: Start_END_Type, exchange: str, symbol: str,
+                    session: requests.Session) -> Tuple[Dict[str, str], requests.Response, str]:
+    """
+        **_create_request**
+            will create a request using request library to eod endpoint to fetch data
+    """
+    url, params = _create_params(symbol=symbol, exchange=exchange, start=start, end=end, api_key=api_key)
     r: requests.Response = session.get(url, params=params)
-    print(f'status code : {r.status_code}')
+    if config_data.DEBUG:
+        print(f"url = {url} params = {params}")
+        print(f'status code : {r.status_code}')
+    return params, r, url
+
+
+@_handle_environ_error
+@_handle_request_errors
+def get_eod_data(symbol: str, exchange: str, start: Start_END_Type = None, end: Start_END_Type = None,
+                 api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
+                 session: Optional[requests.Session] = None) -> Optional[pd.DataFrame]:
+    """
+        **get_eod_data**
+
+        PARAMETERS
+            symbol: (str) -> Ticker Symbol
+            exchange: (str) -> Exchange Code
+            start: (str, int, date, datetime) -> start date or integer representing Year
+            end: (str,int, date, datetime) -> end date or integer representing Year
+            api_key: (str) -> EOD Historical API Key
+            session: (str) -> Request Session Object
+
+        EXCEPTIONS:
+            RemoteDataError -> will be raised if data cannot be returned from EOD for any reason
+            ValueError -> Will be raised if either start or end do not contain Valid Data
+
+        returns -> DataFrame containing End oF Day Data for the Symbol
+    """
+
+    params, r, url = _create_request(api_key=api_key, end=end, start=start,
+                                     exchange=exchange, session=session, symbol=symbol)
 
     if r.status_code == requests.codes.ok:
         # NOTE engine='c' which is default does not support skip footer
-        df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(r.text), engine='python',
-                                                           skipfooter=1, parse_dates=[0], index_col=0)
+        df: Optional[pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python',
+                                                 skipfooter=1, parse_dates=[0], index_col=0)
         return df
     elif r.status_code == api_key_not_authorized:
-        inv_api_key()
+        _api_key_not_authorized_message()
     else:
-        params["api_token"] = "YOUR_HIDDEN_API"
+        # replacing api token so it does not show in debug messages
+        params["api_token"] = "API TOKEN IS SECRET"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
+
 
 @_handle_environ_error
 @_handle_request_errors
-async def get_eod_data_async(symbol: str, exchange: str, start: typing.Union[str, int] = None,
-                             end: typing.Union[str, int] = None,
-                             api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT) -> typing.Union[pd.DataFrame, None]:
-    symbol_exchange: str = f"{symbol}.{exchange}"
-    start, end = _sanitize_dates(start, end)
-    endpoint: str = f"/eod/{symbol_exchange}"
-    url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
-    params: dict = {
-        "api_token": api_key,
-        "from": _format_date(start),
-        "to": _format_date(end)
-    }
-    async with aiohttp.ClientSession() as session:
+async def get_eod_data_async(symbol: str, exchange: str, start: Start_END_Type = None,
+                             end: Start_END_Type = None,
+                             api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT) -> \
+        Optional[Union[pd.TextFileReader, pd.DataFrame]]:
+    """
+        **get_eod_data_async**
+
+        PARAMETERS
+            symbol: (str) -> Ticker Symbol
+            exchange: (str) -> Exchange Code
+            start: (str, int, date, datetime) -> start date or integer representing Year
+            end: (str,int, date, datetime) -> end date or integer representing Year
+            api_key: (str) -> EOD Historical API Key
+            session: (str) -> Request Session Object
+
+        EXCEPTIONS:
+            RemoteDataError -> will be raised if data cannot be returned from EOD for any reason
+            ValueError -> Will be raised if either start or end do not contain Valid Data
+
+        returns -> DataFrame containing End oF Day Data for the Symbol
+    """
+
+    url, params = _create_params(symbol=symbol, exchange=exchange, start=start, end=end, api_key=api_key)
+
+    async with io.ClientSession() as session:
         async with session.get(url, params=params) as response:
             if response.status == 200:
                 response_data = await response.text()
-                df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(response_data), engine='python',
-                                                                   skipfooter=1, parse_dates=[0], index_col=0)
+                df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
+                                                                         skipfooter=1,
+                                                                         parse_dates=[0], index_col=0)
                 return df
             elif response.status == api_key_not_authorized:
-                inv_api_key()
+                _api_key_not_authorized_message()
             else:
-                params["api_token"] = "YOUR_HIDDEN_API"
+                # replacing api token so it does not show in debug messages
+                params["api_token"] = "API TOKEN IS SECRET"
                 raise RemoteDataError(response.status, response.reason, _url(url, params))
 
 
 @_handle_environ_error
 @_handle_request_errors
-def get_dividends(symbol: str, exchange: str, start: typing.Union[str, int] = None, end: typing.Union[str, int] = None,
+def get_dividends(symbol: str, exchange: str, start: Start_END_Type = None, end: Start_END_Type = None,
                   api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
-                  session: typing.Union[None, requests.Session] = None) -> typing.Union[pd.DataFrame, None]:
+                  session: Optional[requests.Session] = None) -> Optional[Union[pd.TextFileReader, pd.DataFrame]]:
     """
-        Returns dividends
+        **get_dividends**
+
     """
-    symbol_exchange: str = f"{symbol},{exchange}"
-    session: requests.Session = _init_session(session)
-    start, end = _sanitize_dates(start, end)
-    endpoint: str = f"/div/{symbol_exchange}"
-    url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
-    params: dict = {
-        "api_token": api_key,
-        "from": _format_date(start),
-        "to": _format_date(end)
-    }
-    r: requests.Response = session.get(url, params=params)
-    print(f'status code : {r.status_code}')
+    params, r, url = _create_request(api_key=api_key, end=end, start=start,
+                                     exchange=exchange, session=session, symbol=symbol)
 
     if r.status_code == requests.codes.ok:
         # NOTE engine='c' which is default does not support skip footer
-        df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=1,
-                                                           parse_dates=[0], index_col=0)
+        df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python',
+                                                                 skipfooter=1,
+                                                                 parse_dates=[0], index_col=0)
         assert len(df.columns) == 1
         ts = df["Dividends"]
         return ts
     elif r.status_code == api_key_not_authorized:
-        inv_api_key()
+        _api_key_not_authorized_message()
     else:
-        params["api_token"] = "YOUR_HIDDEN_API"
+        params["api_token"] = "API TOKEN IS SECRET"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
 
 @_handle_environ_error
 @_handle_request_errors
-async def get_dividends_async(symbol: str, exchange: str, start: typing.Union[str, int] = None,
-                              end: typing.Union[str, int] = None,
-                              api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT) -> typing.Union[pd.DataFrame, None]:
+async def get_dividends_async(symbol: str, exchange: str, start: Union[str, int] = None,
+                              end: Union[str, int] = None,
+                              api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT) -> Optional[pd.DataFrame]:
     """
         Returns dividends
     """
-    symbol_exchange: str = f"{symbol},{exchange}"
-    start, end = _sanitize_dates(start, end)
-    endpoint: str = f"/div/{symbol_exchange}"
-    url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
-    params: dict = {
-        "api_token": api_key,
-        "from": _format_date(start),
-        "to": _format_date(end)
-    }
-    async with aiohttp.ClientSession() as session:
+    url, params = _create_params(symbol=symbol, exchange=exchange, start=start, end=end, api_key=api_key)
+
+    async with io.ClientSession() as session:
         async with session.get(url, params=params) as response:
             if response.status == 200:
                 response_data = await response.text()
-                df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
-                                                                   skipfooter=1,
-                                                                   parse_dates=[0], index_col=0)
+                df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
+                                                                         skipfooter=1,
+                                                                         parse_dates=[0], index_col=0)
                 assert len(df.columns) == 1
                 ts = df["Dividends"]
                 return ts
             elif response.status == api_key_not_authorized:
-                inv_api_key()
+                _api_key_not_authorized_message()
             else:
-                params["api_token"] = "YOUR_HIDDEN_API"
+                params["api_token"] = "API TOKEN IS SECRET"
                 raise RemoteDataError(response.status, response.reason, _url(url, params))
+
 
 @_handle_environ_error
 @_handle_request_errors
 def get_exchange_symbols(exchange_code: str,
                          api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
-                         session: typing.Union[requests.Session, None] = None) -> typing.Union[pd.DataFrame, None]:
+                         session: Union[requests.Session, None] = None) -> Optional[pd.DataFrame]:
     """
         Returns list of symbols for a given exchange
     """
     session: requests.Session = _init_session(session)
     endpoint: str = f"/exchanges/{exchange_code}"
     url: str = EOD_HISTORICAL_DATA_API_URL + endpoint
-    params: dict = {
-        "api_token": api_key
-    }
+    params: dict = {"api_token": api_key}
+
     r: requests.Response = session.get(url, params=params)
-    print(f'status code : {r.status_code}')
+    if config_data.DEBUG:
+        print(f'status code : {r.status_code}')
     if r.status_code == requests.codes.ok:
-        df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=1, index_col=0)
+        df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=1,
+                                                                 index_col=0)
         return df
     elif r.status_code == api_key_not_authorized:
-        inv_api_key()
+        _api_key_not_authorized_message()
     else:
-        params["api_token"] = "YOUR_HIDDEN_API"
+        # replacing api token so it does not show in debug messages
+        params["api_token"] = "API TOKEN IS SECRET"
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
 
 @_handle_environ_error
 @_handle_request_errors
 async def get_exchange_symbols_async(exchange_code: str,
-                                     api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT) -> \
-        typing.Union[pd.DataFrame, None]:
+                                     api_key: str = EOD_HISTORICAL_DATA_API_KEY_DEFAULT) -> Optional[pd.DataFrame]:
     """
         Returns list of symbols for a given exchange
     """
@@ -190,17 +238,18 @@ async def get_exchange_symbols_async(exchange_code: str,
     params: dict = {
         "api_token": api_key
     }
-    async with aiohttp.ClientSession() as session:
+    async with io.ClientSession() as session:
         async with session.get(url, params=params) as response:
             if response.status == 200:
                 response_data = await response.text()
-                df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
-                                                                   skipfooter=1, index_col=0)
+                df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
+                                                                         skipfooter=1, index_col=0)
                 return df
             elif response.status == api_key_not_authorized:
-                inv_api_key()
+                _api_key_not_authorized_message()
             else:
-                params["api_token"] = "YOUR_HIDDEN_API"
+                # replacing api token so it does not show in debug messages
+                params["api_token"] = "API TOKEN IS SECRET"
                 raise RemoteDataError(response.status, response.reason, _url(url, params))
 
 
@@ -254,7 +303,7 @@ ID	Exchange Name	Exchange Code
 42	OTC Market	OTC
 43	ETF-Euronext	NX
 44	Johannesburg Exchange	JSE"""
-    df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(data), sep="\t")
+    df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(data), sep="\t")
     df: pd.DataFrame = df.set_index("ID")
     return df
 
@@ -298,7 +347,7 @@ def get_currencies() -> pd.DataFrame:
 31	FX	TRY
 32	FX	UYU
 33	FX	BTC"""
-    df: typing.Union[pd.DataFrame, None] = pd.read_csv(StringIO(data), sep="\t")
+    df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(data), sep="\t")
     df: pd.DataFrame = df.set_index("ID")
     return df
 
@@ -447,6 +496,6 @@ def get_indexes() -> pd.DataFrame:
 136	INDX	IXE	^IXE: Select Sector Spdr-energy Inde
 137	INDX	IXIC	NASDAQ Composite
 138	INDX	SPEUP	S&P EUROPE 350"""
-    df: typing.Union[None, pd.DataFrame] = pd.read_csv(StringIO(data), sep="\t")
+    df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(data), sep="\t")
     df: pd.DataFrame = df.set_index("ID")
     return df
