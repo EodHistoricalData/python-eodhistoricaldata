@@ -1,27 +1,31 @@
-import typing
+from sqlite3 import Timestamp
+from typing import Optional, Union, Dict, Tuple, Callable
 import functools
 import requests
-import datetime
+from datetime import date, datetime
 import traceback
 import pandas as pd
-from pandas.api.types import is_number
+import pandas.api.types as _types
 from urllib.parse import urlencode
 from requests.exceptions import RetryError, ConnectTimeout
 from config.config import Config
 
 config_instance: Config = Config()
 # NOTE do not remove
-from unittest.mock import sentinel
 
 
-def _init_session(session: typing.Union[requests.Session, None]) -> requests.Session:
+Sanitize_Type = Tuple[Union[Timestamp, datetime], Union[Timestamp, datetime]]
+Handle_Request_Type = Callable[..., Optional[pd.DataFrame]]
+
+
+def _init_session(session: Optional[requests.Session]) -> requests.Session:
     """
         Returns a requests.Session (or CachedSession)
     """
     return requests.Session() if session is None else session
 
 
-def _url(url: str, params: dict) -> str:
+def _url(url: str, params: Dict[str, str]) -> str:
     """
         Returns long url with parameters
         https://mydomain.com?param1=...&param2=...
@@ -29,36 +33,30 @@ def _url(url: str, params: dict) -> str:
     return "{}?{}".format(url, urlencode(params)) if isinstance(params, dict) and len(params) > 0 else url
 
 
-def _format_date(dt: typing.Union[None, datetime.datetime]) -> typing.Union[None, str]:
+def _format_date(dt: Optional[datetime]) -> Optional[str]:
     """
         Returns formatted date
     """
     return None if dt is None else dt.strftime("%Y-%m-%d")
 
 
-def _sanitize_dates(start: typing.Union[None, int], end: typing.Union[None, int]) -> tuple:
+def _sanitize_dates(start: Union[int, date, datetime], end: Union[int, date, datetime]) -> Sanitize_Type:
     """
         Return (datetime_start, datetime_end) tuple
     """
-    if is_number(start):
-        # regard int as year
-        start: datetime.datetime = datetime.datetime(start, 1, 1)
-    start = pd.to_datetime(start)
-
-    if is_number(end):
-        # regard int as year
-        end: datetime.datetime = datetime.datetime(end, 1, 1)
-    end = pd.to_datetime(end)
-
     if start and end:
         if start > end:
-            raise Exception("end must be after start")
+            raise ValueError("end must be after start")
+    else:
+        raise ValueError("start and or end must contain valid int. date or datetime object")
+
+    start = datetime(start, 1, 1) if _types.is_number(start) else pd.to_datetime(start)
+    end = datetime(end, 1, 1) if _types.is_number(end) else pd.to_datetime(end)
 
     return start, end
 
 
-def _handle_request_errors(func: typing.Callable[..., typing.Union[pd.DataFrame, None]]) -> \
-        typing.Union[None, typing.Callable[..., typing.Union[pd.DataFrame, None]]]:
+def _handle_request_errors(func: Handle_Request_Type) -> Optional[Handle_Request_Type]:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -85,17 +83,16 @@ def _handle_request_errors(func: typing.Callable[..., typing.Union[pd.DataFrame,
     return wrapper
 
 
-def _handle_environ_error(func: typing.Callable[..., typing.Union[pd.DataFrame, None]]) -> \
-        typing.Union[None, typing.Callable[..., typing.Union[pd.DataFrame, None]]]:
+def _handle_environ_error(func: Handle_Request_Type) -> Optional[Handle_Request_Type]:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            api_key: typing.Union[str, None] = kwargs.get('api_key')
+            api_key: Optional[str] = kwargs.get('api_key')
             assert api_key is not None
             assert api_key != ""
             return func(*args, **kwargs)
         except AssertionError:
-            raise EnvironNotSet("Environment not set see readme.md on how to setup your environment variables")
+            raise EnvironNotSet("Environment not set, see readme.md on how to setup your environment variables")
 
     return wrapper
 
