@@ -92,7 +92,7 @@ def get_eod_data(symbol: str, exchange: str, start: Start_END_Type = None, end: 
     if r.status_code == requests.codes.ok:
         # NOTE engine='c' which is default does not support skip footer
         df: Optional[pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python',
-                                                 skipfooter=1, parse_dates=[0], index_col=0)
+                                                 skipfooter=0, parse_dates=[0], index_col=0)
         return df
     elif r.status_code == api_key_not_authorized:
         _api_key_not_authorized_message()
@@ -133,7 +133,7 @@ async def get_eod_data_async(symbol: str, exchange: str, start: Start_END_Type =
             if response.status == 200:
                 response_data = await response.text()
                 df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
-                                                                         skipfooter=1,
+                                                                         skipfooter=0,
                                                                          parse_dates=[0], index_col=0)
                 return df
             elif response.status == api_key_not_authorized:
@@ -159,7 +159,7 @@ def get_dividends(symbol: str, exchange: str, start: Start_END_Type = None, end:
     if r.status_code == requests.codes.ok:
         # NOTE engine='c' which is default does not support skip footer
         df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python',
-                                                                 skipfooter=1,
+                                                                 skipfooter=0,
                                                                  parse_dates=[0], index_col=0)
         assert len(df.columns) == 1
         ts = df["Dividends"]
@@ -186,7 +186,7 @@ async def get_dividends_async(symbol: str, exchange: str, start: Union[str, int]
             if response.status == 200:
                 response_data = await response.text()
                 df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
-                                                                         skipfooter=1,
+                                                                         skipfooter=0,
                                                                          parse_dates=[0], index_col=0)
                 assert len(df.columns) == 1
                 ts = df["Dividends"]
@@ -215,7 +215,7 @@ def get_exchange_symbols(exchange_code: str,
     if config_data.DEBUG:
         print(f'status code : {r.status_code}')
     if r.status_code == requests.codes.ok:
-        df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=1,
+        df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(r.text), engine='python', skipfooter=0,
                                                                  index_col=0)
         return df
     elif r.status_code == api_key_not_authorized:
@@ -243,7 +243,7 @@ async def get_exchange_symbols_async(exchange_code: str,
             if response.status == 200:
                 response_data = await response.text()
                 df: Union[pd.TextFileReader, pd.DataFrame] = pd.read_csv(StringIO(response_data), engine='python',
-                                                                         skipfooter=1, index_col=0)
+                                                                         skipfooter=0, index_col=0)
                 return df
             elif response.status == api_key_not_authorized:
                 _api_key_not_authorized_message()
