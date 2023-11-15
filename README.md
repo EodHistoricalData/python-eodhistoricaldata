@@ -2,7 +2,7 @@
 
 # Python EOD Historical Data
 
-A library to download data from EOD historical data https://eodhistoricaldata.com/ using:
+A library to download data from EOD historical data https://eodhd.com/ using:
 - [Python](https://www.python.org/)
 - [Requests](http://docs.python-requests.org/) / [Requests-cache](http://requests-cache.readthedocs.io/)
 - [Pandas](http://pandas.pydata.org/)
