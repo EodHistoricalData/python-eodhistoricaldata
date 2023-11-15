@@ -9,7 +9,7 @@ A library to download data from EOD historical data https://eodhistoricaldata.co
 
 ## Installation
 
-### Install latest development version
+### Install the latest development version
 
 ```bash
 $ pip install git+https://github.com/femtotrader/python-eodhistoricaldata.git
