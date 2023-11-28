@@ -23,8 +23,7 @@ api_key = set_envar()
 
 
 def test_get_eod_data_no_date():
-    df = get_eod_data("AAPL", "US", api_key=api_key, session=session)
-    print(df)
+    print(df := get_eod_data("AAPL", "US", api_key=api_key, session=session))
     # Note if df is Sentinel it means that the request was sent through but the response
     # was forbidden indicating that the APi Key may not have been authorized to perform the
     # Operation
@@ -33,50 +32,44 @@ def test_get_eod_data_no_date():
 
 
 def test_get_eod_data_with_date():
-    df = get_eod_data("AAPL", "US", start="2020-02-01", end="2020-02-10",
-                      api_key=api_key, session=session)
-    print(df)
+    print(df := get_eod_data("AAPL", "US", start="2020-02-01", end="2020-02-10",
+                      api_key=api_key, session=session))
     if df is not sentinel:
         assert df.index.name == "Date"
         assert df.index[0] != ""
 
 
 def test_get_dividends():
-    df = get_dividends("AAPL", "US", start="2020-02-01", end="2020-02-10",
-                       api_key=api_key, session=session)
-    print(df)
+    print(df := get_dividends("AAPL", "US", start="2020-02-01", end="2020-02-10",
+                       api_key=api_key, session=session))
     if df is not sentinel:
         assert df.index.name == "Date"
 
 
 def test_get_exchange_symbols():
-    df = get_exchange_symbols(exchange_code="US",
-                              api_key=api_key, session=session)
-    print(df)
+    print(df := get_exchange_symbols(exchange_code="US",
+                              api_key=api_key, session=session))
     if df is not sentinel:
         assert df.index.name == "Code"
         assert "AAPL" in df.index
 
 
 def test_get_exchanges():
-    df = get_exchanges()
-    print(df)
+    print(df := get_exchanges())
     if df is not sentinel:
         assert df.index.name == "ID"
         assert "US" in df["Exchange Code"].unique()
 
 
 def test_get_currencies():
-    df = get_currencies()
-    print(df)
+    print(df := get_currencies())
     if df is not sentinel:
         assert df.index.name == "ID"
         assert "USD" in df["Currency Code"].unique()
 
 
 def test_get_indexes():
-    df = get_indexes()
-    print(df)
+    print(df := get_indexes())
     if df is not sentinel:
         assert df.index.name == "ID"
         assert "GSPC" in df["Code"].unique()
