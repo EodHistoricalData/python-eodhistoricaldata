@@ -1,4 +1,7 @@
-[![Build Status](https://travis-ci.org/femtotrader/python-eodhistoricaldata.svg?branch=master)](https://travis-ci.org/femtotrader/python-eodhistoricaldata)
+!! We recommend using our official library, which is regularly updated and comes with detailed documentation:
+https://github.com/EodHistoricalData/EODHD-APIs-Python-Financial-Library
+
+
 
 # Python EOD Historical Data
 
